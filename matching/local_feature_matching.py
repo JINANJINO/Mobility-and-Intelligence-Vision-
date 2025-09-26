@@ -1,0 +1,48 @@
+import numpy as np
+import cv2
+
+def keypoint_matching():
+    src1 = cv2.imread('box.png', cv2.IMREAD_GRAYSCALE)
+    src2 = cv2.imread('box_in_scene.png', cv2.IMREAD_GRAYSCALE)
+    
+    if src1 is None or src2 is None:
+        print('Image load failed!')
+        return
+    
+    orb = cv2.ORB_create()
+    
+    keypoints1, desc1 = orb.detectAndCompute(src1, None)
+    keypoints2, desc2 = orb.detectAndCompute(src2, None)
+    
+    matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING)
+    matches = matcher.match(desc1, desc2)
+    
+    matches = sorted(matches, key=lambda x: x.distance)
+    good_matches = matches[:50]
+    
+    dst = cv2.drawMatches(src1, keypoints1, src2, keypoints2, good_matches, None,
+                          flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    
+    # 1번 이미지(src1)의 특징점 좌표
+    pts1 = np.array([keypoints1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2).astype(np.float32)
+    # 2번 이미지(src2)의 특징점 좌표 (수정된 부분)
+    pts2 = np.array([keypoints2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2).astype(np.float32)
+    
+    H, _ = cv2.findHomography(pts1, pts2, cv2.RANSAC)
+    
+    (h, w) = src1.shape[:2]
+    corners1 = np.array([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2).astype(np.float32)
+    corners2 = cv2.perspectiveTransform(corners1, H)
+    
+    # corners2 좌표는 src2를 기준으로 계산되었으므로, src1의 너비만큼 더해줘야 dst 이미지에 올바르게 그려짐
+    corners2 = corners2 + np.float32([src1.shape[1], 0])
+    
+    cv2.polylines(dst, [np.int32(corners2)], True, (0, 255, 0), 2, cv2.LINE_AA)
+    
+    cv2.imshow('dst', dst)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+# 들여쓰기를 수정하여 함수 밖으로 이동
+if __name__ == '__main__':
+    keypoint_matching()
