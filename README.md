@@ -298,8 +298,16 @@ Afterwards, if you measure the pixel change through **Extream Detection**, you c
 
 This time, let's look at the task for the descriptor in the SIFT algorithm. This is very similar to the Histogram of Gradient (HoG) method. First, the gradient for the surrounding pixels is calculated.
 
+$$m(x, y) = \sqrt{(L(x+1, y) - L(x-1, y))^2 + (L(x, y+1) - L(x, y-1))^2}$$
+
+$$\theta(x, y) = \tan^{-1}((L(x, y+1) - L(x, y-1)) / (L(x+1, y) - L(x-1, y))) $$
+
 Afterwards, it is stacked as a histogram and used as a descriptor. The surrounding 16*16 pixels are divided into 4*4 cells and 8qkdgiddp eogks gradient histograms are created in each cell.
-## Visual Localization
+
+<img width="504" height="229" alt="image" src="https://github.com/user-attachments/assets/07619f51-fde8-4be4-bd1e-7de569355262" />
+
+
+### Local feature matching example
 
 **Original Images**  
 <img src="https://github.com/user-attachments/assets/8dbc631a-edca-4f9a-bb98-9a9bc2fc7dbe" width="360" />  
@@ -310,7 +318,7 @@ Afterwards, it is stacked as a histogram and used as a descriptor. The surroundi
 
 ---
 
-## Using Panoramic Photos
+### Using Panoramic Photos
 
 **Original Images**  
 <img src="https://github.com/user-attachments/assets/51949719-b5da-4af4-91bd-1c39d062421d" width="240" />  
@@ -322,8 +330,66 @@ Afterwards, it is stacked as a histogram and used as a descriptor. The surroundi
 
 ---
 
-# Depth
+# Depth Estimation
+As we saw in the Camera Parameter section earlier, we learned that the 3D coordinates cannot be restored using only the inverse matrix of the Projection Matrix.
+To restore this 3D information, additional information is required, and that information is **Depth**.
+**Depth estimation** requires the **use of multiple images** or a **stereo camera**. In other words, 3D reconstruction is possible only with two or more images.
 
+<img width="800" height="441" alt="image" src="https://github.com/user-attachments/assets/7ff0c9a0-fcd1-479d-832c-9c61659b14a3" />
+
+The core idea behind depth estimation is this: if a projection process is performed using a single camera, one ray will be emitted, and if two cameras are used, two rays will be emitted. By finding these two rays and finding their intersection, we can estimate depth.
+
+### General process of depth estimation
+- **Input Image**
+- **Find Corresponding Points** : We need to find the corresponding points through Local Feature Matching. This is because in order to find a single intersection, we need to assume that $$({u_L, v_L})$$ and $$({u_R, v_R})$$ are output from a single pixel.
+- **Estimate Camera's Pose**
+- **Caculate Depth**(8 points algorithm, Triangulation, Stereo matching)
+
+### Stereo Camera
+<img width="1230" height="554" alt="image" src="https://github.com/user-attachments/assets/7f406f85-30c3-4ab2-8299-c437b360938f" />
+
+Using **Stereo Camera**, you can obtain the following additional information: First, you can determine the distance between the two cameras. And because they are facing the same direction, **Camera Pose Estimation** is not necessary.
+Another feature of **Stereo Camera** is that when shooting a scene, the positions of distant objects change slightly, but the positions of nearby objects change greatly.
+This is called **Disparity**. Knowing this disparity allows us to easily estimate depth in a stereo camera.
+
+### Depth estimation process in stereo cameras
+<img width="789" height="591" alt="image" src="https://github.com/user-attachments/assets/20df642a-d49b-4eab-a8f6-7a8c5d8a9400" />
+
+In the figure above, $$X′$$, $$X′'$$ are the image coordinates for the projected point. Since the two cameras are installed in slightly different positions, even if they captured the same object, the position in the image appears different. This is called parallax, and in the normal stereo case, since the position difference between the two cameras is only in the horizontal direction ($$x$$-axis), the parallax also appears only in the x-axis, and in the figure above, it corresponds to $${P_x}​=X′′−X′$$ (the upper green line). When applied to the property of similarity, it is as follows.
+
+$$
+\frac{Z}{c} = \frac{B}{\mathbf{x}' - \mathbf{x}''} \quad \rightarrow \quad Z = c \frac{B}{-(\mathbf{x}'' - \mathbf{x}')} = c \frac{B}{-p_x}
+$$
+
+- ```B```: Base Line
+- ```c```: focal length
+
+Here, ```B``` and ```c``` are values ​​determined by the stereo camera hardware and are assumed to be already known. Therefore, $${P_x}$$(disparity) is required to calculate depth. Due to this property, many depth estimation methods calculate disparity instead of directly calculating depth.
+
+### Finding Disparity
+To calculate depth, we need **disparity**. To do this, we need to find the pixel values ​​of the same point in two stereo images. This is because after determining the location, we can calculate the distance between the two. While the previously discussed Local Feature Matching method can be used, Local Feature Matching typically calculates only feature points. Therefore, we will discuss a method to calculate **disparity** using **Stereo Matching**.
+
+ <img width="923" height="528" alt="image" src="https://github.com/user-attachments/assets/0057d36f-1f8d-459a-881e-9ad62a305ade" />
+
+The location of the corresponding point in Camera 1 (left image in the figure) must also be found in Camera 2 (right image in the figure). Since Stereo Cameras do not rotate, a point on the turquoise line is always in the same location. Therefore, by searching only the turquoise line, we can find points at the same location and determine disparity.
+
+That is, we take the image patch of Camera 1 and compare it with all the pixels of the cyan line, and the point with the highest score here will be the matching point.
+The table below is used for Score Matching.
+<img width="1424" height="1088" alt="image" src="https://github.com/user-attachments/assets/45955cba-7839-444c-be7a-3fafef7369c0" />
+
+One thing to keep in mind when performing Stereo Matching is the size of the Image Patch.
+
+- When the image patch is **small**: The calculation becomes faster and finer depth can be obtained, but there is a problem that the noise increases due to the increase in incorrect matching.
+- When the image patch is **large**: The operation is slow, but a smooth depth map can be obtained.
+
+**When Matching is Difficult**
+>- **Textureless regions**
+>- **repeted Patterns**
+>- **specularities**
+
+---
+
+## Stereo Matching Practice
 **Stereo Camera Left Image**  
 <img src="https://github.com/user-attachments/assets/b0b7cc9a-ffc1-44bc-be23-e1e34ee62dca" width="360" />
 
