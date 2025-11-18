@@ -288,6 +288,17 @@ However, the Harris Corner algorithm is not invariant to scale. That is, the ima
 The **SIFT** algorithm can also address this scale invariance.
 The **SIFT** algorithm provides a **keypoint detector** with scale invariance and a **descriptor** for matching each keypoint. (The Harris Corner detector and FAST algorithm do not have a detector.)
 Let's first look at the detection process. To address the scale issue, multiple scaled images are created. Then, each scale is compared and combined to determine whether a given point is a keypoint.
+
+<img width="740" height="549" alt="image" src="https://github.com/user-attachments/assets/402debc7-3203-4932-a015-6caf7988fcdd" />
+
+Afterwards, a Gaussian filter is applied to the original image. This is because, when applied in this way, only the peak point survives, and the average point disappears.
+That is, **Corners** and **Edges** become easier to find.
+Afterwards, if you measure the pixel change through **Extream Detection**, you can see the point where it becomes Extrema.
+<img width="1357" height="629" alt="image" src="https://github.com/user-attachments/assets/8d802372-7102-40d8-ab8a-a9affe5c3a9e" />
+
+This time, let's look at the task for the descriptor in the SIFT algorithm. This is very similar to the Histogram of Gradient (HoG) method. First, the gradient for the surrounding pixels is calculated.
+
+Afterwards, it is stacked as a histogram and used as a descriptor. The surrounding 16*16 pixels are divided into 4*4 cells and 8qkdgiddp eogks gradient histograms are created in each cell.
 ## Visual Localization
 
 **Original Images**  
