@@ -307,7 +307,7 @@ Afterwards, it is stacked as a histogram and used as a descriptor. The surroundi
 <img width="504" height="229" alt="image" src="https://github.com/user-attachments/assets/07619f51-fde8-4be4-bd1e-7de569355262" />
 
 
-### Local feature matching example
+### Local feature matching practice
 
 **Original Images**  
 <img src="https://github.com/user-attachments/assets/8dbc631a-edca-4f9a-bb98-9a9bc2fc7dbe" width="360" />  
